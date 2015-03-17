@@ -8,44 +8,58 @@
 
 'use strict';
 
+var path = require('path');
+var fs = require('fs');
+var when = require('when');
+var SDK = require('mozu-node-sdk');
+
+
 module.exports = function (grunt) {
 
-  // Please see the Grunt documentation for more information regarding task
-  // creation: http://gruntjs.com/creating-tasks
+  var actions = {
+    upsert: function upsertFile(client, options, filepath) {
+      return client.upsertPackageFile({
+        applicationKey: options.applicationKey,
+        lastModifiedTime: options.noclobber && fs.statSync(filepath).mtime.toISOString(),
+        filepath: formatPath(filepath)
+      }, {
+        scope: 'DEVELOPER',
+        body: grunt.file.read(filepath)
+      });
+    }
+  }
 
-  grunt.registerMultiTask('mozu_appdev_sync', 'Syncs a local project with the Mozu Developer Center.', function () {
+  function createAppDevClient(options) {
+    var client = SDK.client().platform().applications(options.context);
+    if (process.env.DEBUG) {
+      client.defaultRequestOptions = {
+        proxy: 'http://127.0.0.1:8888',
+        rejectUnauthorized: false
+      };
+    }
+    return client;
+  }
 
-    // Merge task-specific and/or target-specific options with these defaults.
+  function formatPath(pathstring) {
+    return path.join('assets',pathstring.split(path.sep).join('|'));
+  }
+
+  grunt.registerMultiTask('mozusync', 'Syncs a local project with the Mozu Developer Center.', function () {
+
+    this.requiresConfig('applicationKey');
+
+    var done = this.async();
+
     var options = this.options({
-      punctuation: '.',
-      separator: ', '
+      action: 'upsert'
     });
 
-    // Iterate over all specified file groups.
-    this.files.forEach(function (file) {
-      // Concat specified files.
-      var src = file.src.filter(function (filepath) {
-        // Warn on and remove invalid source files (if nonull was set).
-        if (!grunt.file.exists(filepath)) {
-          grunt.log.warn('Source file "' + filepath + '" not found.');
-          return false;
-        } else {
-          return true;
-        }
-      }).map(function (filepath) {
-        // Read file source.
-        return grunt.file.read(filepath);
-      }).join(grunt.util.normalizelf(options.separator));
+    var client = createAppDevClient(options);
 
-      // Handle options.
-      src += options.punctuation;
+    when.all(this.filesSrc.map(function(filepath) {
+      return actions[options.action](client, options, filepath);
+    }).then(done, grunt.fail);
 
-      // Write the destination file.
-      grunt.file.write(file.dest, src);
-
-      // Print a success message.
-      grunt.log.writeln('File "' + file.dest + '" created.');
-    });
   });
 
 };

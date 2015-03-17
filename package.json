@@ -26,5 +26,9 @@
   },
   "scripts": {
     "test": "grunt test"
+  },
+  "dependencies": {
+    "mozu-node-sdk": "*",
+    "when": "^3.7.2"
   }
 }

@@ -28,6 +28,7 @@
     "test": "grunt test"
   },
   "dependencies": {
+    "humanize": "0.0.9",
     "mozu-node-sdk": "*",
     "when": "^3.7.2"
   }

@@ -8,13 +8,9 @@
 
 'use strict';
 
-var path = require('path');
-var fs = require('fs');
-var when = require('when');
-var SDK = require('mozu-node-sdk');
 var humanize = require('humanize');
 
-var MOZU_PATH_SEP = "|";
+var appdev = require('../utils/appdev');
 
 module.exports = function (grunt) {
 
@@ -24,82 +20,70 @@ module.exports = function (grunt) {
 
   var actions = {
     upload: {
-      run: function upsertFile(client, options, filepath) {
-        return client.upsertPackageFile({
-          applicationKey: options.applicationKey,
-          lastModifiedTime: options.noclobber && fs.statSync(filepath).mtime.toISOString(),
-          filepath: formatPath(filepath)
-        }, {
-          scope: 'DEVELOPER',
-          body: grunt.file.read(filepath)
-        });
+      run: function(util, options, context, progress) {
+        return util.uploadFiles(context.filesSrc, options, progress);
       },
-      presentTense: 'Upload',
+      presentTense: 'Uploading',
       pastTense: 'Uploaded',
       columnHeaders: grunt.log.table([50,10,20], ['file','size','type']) + line(50+10+20),
       logline: function (r) {
         return grunt.log.table([50,10,20], [r.path, humanize.filesize(r.sizeInBytes), r.type]);
+      },
+      needsToRun: function(options, context) {
+        return context.filesSrc.length > 0;
       }
     },
     "delete": {
-      run: function deleteFile(client, options, filepath) {
-        return client.deletePackageFile({
-          applicationKey: options.applicationKey,
-          filepath: formatPath(filepath)
-        }, {
-          scope: 'DEVELOPER'
-        }).then(function(r) {
-          return {
-            path: filepath
-          };
-        })
+      run: function(util, options, context, progress) {
+        return util.deleteFiles(context.data.remove, options, progress);
       },
-      presentTense: 'Delete',
+      presentTense: 'Deleting',
       pastTense: 'Deleted',
-      columnHeaders: grunt.log.table([50], ['file']) + line(50),
+      columnHeaders: grunt.log.table([40], ['file']) + line(40),
       logline: function (r) {
-        return grunt.log.table([50], ["deleted " + r.path]);
+        return grunt.log.table([40], ["deleted " + r.path]);
+      },
+      needsToRun: function(options, context) {
+        return context.data.remove.length > 0;
       }
     },
     "rename": {
-      run: function renameFile(client, options, filepath, destpath) {
-        var config = {
-          applicationKey: options.applicationKey,
-          oldFullPath: formatPath(filepath),
-          newFullPath: formatPath(destpath)
-        };
-        return client.renamePackageFile(config, {
-          scope: 'DEVELOPER'
-        }).then(function(r) {
+      run: function(util, options, context, progress) {
+
+        var filespecs = context.files.map(function(file){
           return {
-            oldPath: formatPath(filepath,'/'),
-            newPath: r.path
-          }
-        })
+            oldFullPath: file.src[0],
+            newFullPath: file.dest
+          };
+        });
+
+        return util.renameFiles(filespecs, options, progress)
       },
-      presentTense: 'Rename',
+      presentTense: 'Renaming',
       pastTense: 'Renamed',
       columnHeaders: grunt.log.table([40,40], ['old path','new path']) + line(40+40),
       logline: function(r) {
         return grunt.log.table([40,40], [r.oldPath, r.newPath]);
+      },
+      needsToRun: function(options, context) {
+        return context.filesSrc.length > 0;
+      }
+    },
+    "deleteAll": {
+      run: function(util, options, context, progress) {
+        return util.deleteAllFiles(options, progress);
+      },
+      presentTense: 'Deleting all!',
+      pastTense: 'Deleted',
+      columnHeaders: grunt.log.table([40], ['file']) + line(40),
+      logline: function (r) {
+        return grunt.log.table([40], ["deleted " + r.path]);
+      },
+      needsToRun: function() {
+        return true;
       }
     }
   };
-
-  function createAppDevClient(options) {
-    var client = SDK.client(options.context).platform().application();
-    if (process.env.USE_FIDDLER) {
-      client.defaultRequestOptions = {
-        proxy: 'http://127.0.0.1:8888',
-        rejectUnauthorized: false
-      };
-    }
-    return client;
-  }
-
-  function formatPath(pathstring, sep) {
-    return path.join('assets',pathstring).split(path.sep).join(sep || MOZU_PATH_SEP);
-  }
 
   function suffering(e) {
     grunt.fail.fatal(e.body || e);
@@ -113,11 +97,16 @@ module.exports = function (grunt) {
 
     var done = this.async();
 
+    var total = {
+      num: 0,
+      size: 0
+    };
+
     var options = this.options({
       action: 'upload'
     });
 
-    var client = createAppDevClient(options);
+    var appDevUtil = appdev(options.applicationKey, options.context);
 
     var action = actions[options.action];
 
@@ -125,30 +114,25 @@ module.exports = function (grunt) {
       grunt.fail.fatal("Unknown mozusync action " + options.action + ".\nSpecify a valid action in your task config options under the `action` property. \nValid actions are: " + grunt.log.wordlist(Object.keys(actions)));
     }
 
-    grunt.log.subhead(tableHead(action));
+    if (action.needsToRun(options, this)) {
+      grunt.log.subhead(tableHead(action));
 
-    grunt.verbose.writeln('creating tasks for ' + this.files.length + " file mappings");
-
-    var tasks = this.files.reduce(function(memo, file) {
-      grunt.verbose.writeln(grunt.util.linefeed + 'running ' + options.action + ' on ' + file.src.join(', '));
-      return memo.concat(file.src.map(function(src) {
-        return action.run(client, options, src, file.dest).then(log);
-      }));
-    }, []);
-
-    grunt.verbose.writeln('waiting on ' + tasks.length + ' tasks');
-
-    when.all(tasks).then(joy, suffering);
-
-    var total = {
-      num: 0,
-      size: 0
-    };
+      appDevUtil.preauthenticate().then(function() {
+        action.run(appDevUtil, options, this, log).then(joy, suffering);
+      }.bind(this))
+    } else {
+      grunt.log.ok(action.presentTense + ' canceled; no qualifying files were found.');
+      done();
+    }
 
     function log(r) {
-      grunt.log.writeln(action.logline(r));
-      total.num += 1;
-      total.size += r.sizeInBytes;
+      if (r.before) {
+        grunt.verbose.writeln(action.presentTense + " " + JSON.stringify(r.before));
+      } else {
+        grunt.log.writeln(action.logline(r.after));
+        total.num += 1;
+        total.size += r.sizeInBytes;
+      }
       return r;
     }
 

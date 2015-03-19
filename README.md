@@ -17,76 +17,102 @@ Once the plugin has been installed, it may be enabled inside your Gruntfile with
 grunt.loadNpmTasks('grunt-mozu-appdev-sync');
 ```
 
-## The "mozu_appdev_sync" task
+## The "mozusync" task
 
 ### Overview
-In your project's Gruntfile, add a section named `mozu_appdev_sync` to the data object passed into `grunt.initConfig()`.
+In your project's Gruntfile, add a section named `mozusync` to the data object passed into `grunt.initConfig()`.
 
 ```js
 grunt.initConfig({
-  mozu_appdev_sync: {
+  mozusync: {
     options: {
       // Task-specific options go here.
+      applicationKey: 'namespace-applicationname-version-release',
+      context: require('./mozu.config.json')
+      noclobber: true
     },
-    your_target: {
+    all: {
       // Target-specific file lists and/or options go here.
+      src: ['./assets/dist/**/*']
     },
+    del: {
+      // If you're using the grunt-contrib-watch adapter,
+      // a separate task for deletion is usually necessary.
+      // The delete task does not use the `files` array.
+      options: {
+        action: 'delete'
+      },
+      src: ['./assets/dist/**/*'],
+      remove: []
+    }
   },
 })
 ```
 
-### Options
+### Configuration
 
-#### options.separator
+#### options.applicationKey
+Type: 'String'
+**Required**
+
+The application key of the application, theme, or extension you are working on in Developer Center.
+
+#### options.action
 Type: `String`
-Default value: `',  '`
+Default value: `'upload'`
 
-A string value that is used to do something with whatever.
+A string value describing the type of sync action to take. The default is `'upload'`, which both creates and updates files.
+The full set of options is:
 
-#### options.punctuation
-Type: `String`
-Default value: `'.'`
+ - `'upload'` -- create and/or update files in Developer Center
+ - `'delete'` -- delete files in Developer Center
+ - `'deleteAll'` -- delete all files in Developer Center
+ - `'rename'` -- rename files in Developer Center
 
-A string value that is used to do something else with whatever else.
+The different actions use slightly different configuration, so you can think of them as different tasks, though they will share common options.
 
-### Usage Examples
+#### files
+Use normal Grunt file specification formats, including globbing.
 
-#### Default Options
-In this example, the default options are used to do something with whatever. So if the `testing` file has the content `Testing` and the `123` file had the content `1 2 3`, the generated result would be `Testing, 1 2 3.`
+For the `upload` and `delete` actions, only a `src` is necessary. The `dest` doesn't make sense, since the file destination is Developer Center.
+
+For the `rename` action, populate a `files` object with `src`/`dest` mappings of each file you want to rename. **You will probably not configure this manually in your Gruntfile. You'll want to configure a `grunt-contrib-watch` adapter to do it dynamically.**
+
+For the `deleteAll` action, the `files` object is irrelevant. They're all doomed.
+
+#### options.context
+Type: 'Object'
+**Required**
+
+A context object to use to create a [Mozu Node SDK](https://github.com/mozu/mozu-node-sdk) client. It must contain an application key (different from the working key, this key is connected to your developer sync app that you have created and installed), a shared secret, a developer account ID, developer account login credentials, and a URL indicating the Mozu "home pod" environment to connect to.
+
+#### options.noclobber
+Type: `Boolean`
+Default value: `false`
+
+This option applies to the `upload` action. If this is set to `true`, then the uploads will include a last modified date from your local file system. If you attempt to upload a file that is older than the one in Developer Center, the upload will fail. If it is set to `false`, then all uploads will override regardless of modified date.
+
+### The `grunt-contrib-watch` adapter
+
+The [grunt-contrib-watch](https://github.com/gruntjs/grunt-contrib-watch) is useful for filesystem watching and synchronizing on save. One common problem is that the watch task can only run other tasks, and other tasks are not aware of which files changed, so by default they will run on all files.
+
+This package includes an adapter function that can connect a task to the `grunt-contrib-watch` events and build file targets dynamically. If you are using `grunt-contrib-watch`, then you can add this to your Gruntfile:
 
 ```js
-grunt.initConfig({
-  mozu_appdev_sync: {
-    options: {},
-    files: {
-      'dest/default_options': ['src/testing', 'src/123'],
-    },
-  },
-})
+var watchAdapter = require('grunt-mozu-appdev-sync/watch-adapter');
+
+watchAdapter(grunt, {
+  src: 'mozusync.upload.src',
+  action: 'upload'
+});
 ```
 
-#### Custom Options
-In this example, custom options are used to do something else with whatever else. So if the `testing` file has the content `Testing` and the `123` file had the content `1 2 3`, the generated result in this case would be `Testing: 1 2 3 !!!`
+The watch adapter takes two arguments. The first must be the `grunt` instance passed into your Gruntfile. The second must be an object with a `src` property representing the object in the Grunt config to change, and an `action` property representing the type of action this task will take.
 
-```js
-grunt.initConfig({
-  mozu_appdev_sync: {
-    options: {
-      separator: ': ',
-      punctuation: ' !!!',
-    },
-    files: {
-      'dest/default_options': ['src/testing', 'src/123'],
-    },
-  },
-})
-```
+Once you run this function, your Gruntfile is listening for `watch` events and updating its files config dynamically.
 
 ## Contributing
 In lieu of a formal styleguide, take care to maintain the existing coding style. Add unit tests for any new or changed functionality. Lint and test your code using [Grunt](http://gruntjs.com/).
 
-## Release History
-_(Nothing yet)_
-
 ## License
-Copyright (c) 2015 James Zetlen, Volusion Inc.. Licensed under the MIT license.
+Copyright (c) Volusion Inc.. Licensed under the MIT license.

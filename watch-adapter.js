@@ -28,6 +28,6 @@ module.exports = function(grunt, options) {
 			changed[filepath] = action;
 		}
 		onChange();
-	})	;
+	});
 
 };

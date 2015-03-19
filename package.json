@@ -18,7 +18,7 @@
   "dependencies": {
     "humanize": "0.0.9",
     "lodash.debounce": "^3.0.2",
-    "mozu-node-sdk": "^1.15",
+    "mozu-node-sdk": "^1.15.15052-hotfix",
     "when": "^3.7.2"
   }
 }

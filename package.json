@@ -18,7 +18,6 @@
   "dependencies": {
     "humanize": "0.0.9",
     "lodash.debounce": "^3.0.2",
-    "mozu-node-sdk": "^1.15.15052-hotfix",
-    "when": "^3.7.2"
+    "mozu-appdev-utils": "git+http://tfs.corp.volusion.com:8080/tfs/VNext/Prototype/_git/mozu-appdev-utils"
   }
 }

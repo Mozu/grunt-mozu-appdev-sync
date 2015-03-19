@@ -10,7 +10,7 @@
 
 var humanize = require('humanize');
 
-var appdev = require('../utils/appdev');
+var appDevUtils = require('mozu-appdev-utils');
 
 module.exports = function (grunt) {
 
@@ -106,7 +106,7 @@ module.exports = function (grunt) {
       action: 'upload'
     });
 
-    var appDevUtil = appdev(options.applicationKey, options.context);
+    var appdev = appDevUtils(options.applicationKey, options.context);
 
     var action = actions[options.action];
 
@@ -117,8 +117,8 @@ module.exports = function (grunt) {
     if (action.needsToRun(options, this)) {
       grunt.log.subhead(tableHead(action));
 
-      appDevUtil.preauthenticate().then(function() {
-        action.run(appDevUtil, options, this, log).then(joy, suffering);
+      appdev.preauthenticate().then(function() {
+        action.run(appdev, options, this, log).then(joy, suffering);
       }.bind(this))
     } else {
       grunt.log.ok(action.presentTense + ' canceled; no qualifying files were found.');

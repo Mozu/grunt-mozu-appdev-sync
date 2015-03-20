@@ -12,6 +12,16 @@ var humanize = require('humanize');
 
 var appDevUtils = require('mozu-appdev-utils');
 
+var customErrors = {
+  INVALID_CREDENTIALS: 'Invalid credentials. Please check your mozu.config.json file to see that you are using the right developer account, application key, shared secret, and environment.'
+};
+function getCustomMessage(err) {
+  var errorCode = err.errorCode || err.originalError && err.originalError.errorCode;
+  if (errorCode) {
+    return customErrors[errorCode];
+  }
+}
+
 module.exports = function (grunt) {
 
   function line(len) {
@@ -118,8 +128,10 @@ module.exports = function (grunt) {
       grunt.log.subhead(tableHead(action));
 
       appdev.preauthenticate().then(function() {
-        action.run(appdev, options, this, log).then(joy, suffering);
-      }.bind(this))
+        return action.run(appdev, options, this, log).then(joy, suffering);
+      }.bind(this)).otherwise(function(err) {
+        grunt.fail.fatal(grunt.log.wraptext(67, getCustomMessage(err) || err));
+      });
     } else {
       grunt.log.ok(action.presentTense + ' canceled; no qualifying files were found.');
       done();

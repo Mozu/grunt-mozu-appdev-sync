@@ -20,6 +20,7 @@ function getCustomMessage(err) {
   if (errorCode) {
     return customErrors[errorCode];
   }
+  return err.toString();
 }
 
 module.exports = function (grunt) {
@@ -130,7 +131,7 @@ module.exports = function (grunt) {
       appdev.preauthenticate().then(function() {
         return action.run(appdev, options, this, log).then(joy, suffering);
       }.bind(this)).otherwise(function(err) {
-        grunt.fail.fatal(grunt.log.wraptext(67, getCustomMessage(err) || err));
+        grunt.fail.fatal(grunt.log.wraptext(67, getCustomMessage(err)));
       });
     } else {
       grunt.log.ok(action.presentTense + ' canceled; no qualifying files were found.');
@@ -156,8 +157,13 @@ module.exports = function (grunt) {
       grunt.log.write(grunt.util.linefeed).ok(selfcongratulation + " in application \"" + options.applicationKey + "\"")
     }
 
+    function notify() {
+      grunt.event.emit('mozusync:' + options.action + ":complete");
+    }
+
     function joy() {
       backpat();
+      notify();
       done();
     }
 

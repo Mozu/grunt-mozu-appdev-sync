@@ -18,6 +18,7 @@
   "dependencies": {
     "humanize": "0.0.9",
     "lodash.debounce": "^3.0.2",
+    "lodash.groupby": "^3.1.0",
     "mozu-appdev-utils": "git+http://tfs.corp.volusion.com:8080/tfs/VNext/Prototype/_git/mozu-appdev-utils"
   }
 }

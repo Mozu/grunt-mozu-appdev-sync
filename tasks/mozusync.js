@@ -9,12 +9,13 @@
 'use strict';
 
 var humanize = require('humanize');
-
+var groupBy = require('lodash.groupby');
 var appDevUtils = require('mozu-appdev-utils');
 
 var customErrors = {
   INVALID_CREDENTIALS: 'Invalid credentials. Please check your mozu.config.json file to see that you are using the right developer account, application key, shared secret, and environment.'
 };
+
 function getCustomMessage(err) {
   var errorCode = err.errorCode || err.originalError && err.originalError.errorCode;
   if (errorCode) {
@@ -97,7 +98,7 @@ module.exports = function (grunt) {
   };
 
   function suffering(e) {
-    grunt.fail.fatal(e.body || e);
+    grunt.fail.fatal(grunt.log.wraptext(67, getCustomMessage(e.body || e)));
   }
 
   function tableHead(action) {
@@ -108,10 +109,7 @@ module.exports = function (grunt) {
 
     var done = this.async();
 
-    var total = {
-      num: 0,
-      size: 0
-    };
+    var events = [];
 
     var options = this.options({
       action: 'upload'
@@ -126,35 +124,60 @@ module.exports = function (grunt) {
     }
 
     if (action.needsToRun(options, this)) {
+      
       grunt.log.subhead(tableHead(action));
+      return action.run(appdev, options, this, log).then(joy, suffering);
 
-      appdev.preauthenticate().then(function() {
-        return action.run(appdev, options, this, log).then(joy, suffering);
-      }.bind(this)).otherwise(function(err) {
-        grunt.fail.fatal(grunt.log.wraptext(67, getCustomMessage(err)));
-      });
     } else {
       grunt.log.ok(action.presentTense + ' canceled; no qualifying files were found.');
       done();
     }
 
-    function log(r) {
-      if (r.before) {
-        grunt.verbose.writeln(action.presentTense + " " + JSON.stringify(r.before));
+    function log(e) {
+      if (e.phase === "before") {
+        grunt.verbose.writeln(action.presentTense + " " + JSON.stringify(e));
       } else {
-        grunt.log.writeln(action.logline(r.after));
-        total.num += 1;
-        total.size += r.sizeInBytes;
+        grunt.log.writeln(action.logline(e.file));
       }
-      return r;
+      events.push(e);
+      return e;
     }
 
     function backpat() {
-      var selfcongratulation = action.pastTense + " " + total.num + " " + grunt.util.pluralize(total.num,'file/files');
-      if (total.size) {
-        selfcongratulation += " for a total of " + humanize.filesize(total.size);
+
+      var totals = groupBy(events, 'type');
+
+      var selfcongratulation;
+
+      var sizeSum;
+
+      if (totals.completed) {
+        selfcongratulation = action.pastTense + " " + totals.completed.length + " " + grunt.util.pluralize(totals.completed.length,'file/files');
+        sizeSum = totals.completed.reduce(function(sum, e) {
+          return sum + e.file.sizeInBytes;
+        }, 0);
+        if (sizeSum > 0) {
+          selfcongratulation += " for a total of " + humanize.filesize(sizeSum);
+        }
+        grunt.log.write(grunt.util.linefeed).oklns(selfcongratulation + " in application \"" + options.applicationKey + "\"")
       }
-      grunt.log.write(grunt.util.linefeed).ok(selfcongratulation + " in application \"" + options.applicationKey + "\"")
+
+      delete totals.completed;
+
+      ['omitted','rejected'].forEach(function(type) {
+        if (totals[type] && totals[type].length > 0) {
+          var evts = groupBy(totals[type], 'reason');
+          Object.keys(evts).forEach(function(reason) {
+            crow(evts[reason], type, reason);
+          });
+        }
+      });
+
+      function crow(occurrences, type, reason) {
+        var str = [occurrences.length,grunt.util.pluralize(occurrences.length,'file was/files were'),type].join(' ');
+        if (reason) str += " because " + reason;
+        grunt.log.oklns(str);
+      }
     }
 
     function notify() {

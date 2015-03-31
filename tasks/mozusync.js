@@ -18,7 +18,7 @@ var customErrors = {
 
 function getCustomMessage(err) {
   var errorCode = err.errorCode || err.originalError && err.originalError.errorCode;
-  if (errorCode) {
+  if (errorCode && customErrors[errorCode]) {
     return customErrors[errorCode];
   }
   return err.toString();

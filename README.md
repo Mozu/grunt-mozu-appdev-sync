@@ -1,6 +1,9 @@
 # grunt-mozu-appdev-sync
 
-> Syncs a local project with the Mozu Developer Center.
+Syncs a local project with the Mozu Developer Center.
+
+## This package is currently a prerelease.
+**This contains pre-release code. It may have behaviors or rely on features that don't work in Mozu production environments. Use with caution!**
 
 ## Getting Started
 This plugin requires Grunt.
@@ -74,7 +77,9 @@ The different actions use slightly different configuration, so you can think of 
 #### files
 Use normal Grunt file specification formats, including globbing.
 
-For the `upload` and `delete` actions, only a `src` is necessary. The `dest` doesn't make sense, since the file destination is Developer Center.
+For the `upload` action, only a `src` is necessary. The `dest` doesn't make sense, since the file destination is Developer Center.
+
+For the `delete` action, **the files collection won't work**. Grunt automatically filters the runtime files array for files that exist. The delete action is often run in the context of a file watch, so by the time the action runs, the relevant files don't exist anymore! For this reason, the `delete` action looks for an array of strings representing filenames under the property `remove`.
 
 For the `rename` action, populate a `files` object with `src`/`dest` mappings of each file you want to rename. **You will probably not configure this manually in your Gruntfile. You'll want to configure a `grunt-contrib-watch` adapter to do it dynamically.**
 
@@ -91,6 +96,12 @@ Type: `Boolean`
 Default value: `false`
 
 This option applies to the `upload` action. If this is set to `true`, then the uploads will include a last modified date from your local file system. If you attempt to upload a file that is older than the one in Developer Center, the upload will fail. If it is set to `false`, then all uploads will override regardless of modified date.
+
+#### options.ignoreChecksum
+Type: `Boolean`
+Default value: `false`
+
+This option applies to the `upload` action. By default, this action will use checksums to determine if the local file and the remote file are identical, and will skip the upload if they are. Set this to true to override this behavior.
 
 ### The `grunt-contrib-watch` adapter
 

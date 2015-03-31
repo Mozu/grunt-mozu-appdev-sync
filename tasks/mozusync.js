@@ -137,7 +137,7 @@ module.exports = function (grunt) {
       if (e.phase === "before") {
         grunt.verbose.writeln(action.presentTense + " " + JSON.stringify(e));
       } else {
-        grunt.log.writeln(action.logline(e.file));
+        grunt.log.writeln(action.logline(e.data));
       }
       events.push(e);
       return e;
@@ -154,7 +154,7 @@ module.exports = function (grunt) {
       if (totals.completed) {
         selfcongratulation = action.pastTense + " " + totals.completed.length + " " + grunt.util.pluralize(totals.completed.length,'file/files');
         sizeSum = totals.completed.reduce(function(sum, e) {
-          return sum + e.file.sizeInBytes;
+          return sum + e.data.sizeInBytes;
         }, 0);
         if (sizeSum > 0) {
           selfcongratulation += " for a total of " + humanize.filesize(sizeSum);

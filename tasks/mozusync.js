@@ -11,6 +11,34 @@
 var humanize = require('humanize');
 var groupBy = require('lodash.groupby');
 var appDevUtils = require('mozu-appdev-utils');
+var Multipass = require('mozu-multipass');
+var inquirer = require('inquirer');
+
+function PromptingPass() {
+  var proto = Multipass();
+  var o = Object.create(proto);
+  o.get = function(claimtype, context, callback) {
+    return proto.get.call(this, claimtype, context, function(err, ticket) {
+      if (claimtype === "developer" && !ticket && !context.developerAccount.password) {
+        process.stdout.write('\u0007'); // ding!
+        inquirer.prompt([{
+          type: 'password',
+          name: 'password',
+          message: 'Developer password for ' + context.developerAccount.emailAddress + ':',
+          validate: function(str) {
+            return !!str;
+          }
+        }], function(answers) {
+          context.developerAccount.password = answers.password;
+          callback(null, null);
+        });
+      } else {
+        callback(null, ticket);
+      }
+    });
+  };
+  return o;
+};
 
 var customErrors = {
   INVALID_CREDENTIALS: 'Invalid credentials. Please check your mozu.config.json file to see that you are using the right developer account, application key, shared secret, and environment.'
@@ -98,6 +126,9 @@ module.exports = function (grunt) {
   };
 
   function suffering(e) {
+    if (grunt.option("debug")) {
+      throw e;
+    }
     grunt.fail.fatal(grunt.log.wraptext(67, getCustomMessage(e.body || e)));
   }
 
@@ -115,7 +146,14 @@ module.exports = function (grunt) {
       action: 'upload'
     });
 
-    var appdev = appDevUtils(options.applicationKey, options.context);
+    var plugins;
+    if (!options.noStoreAuth) {
+      plugins = {
+        authenticationStorage: PromptingPass()
+      };
+    }
+
+    var appdev = appDevUtils(options.applicationKey, options.context, plugins);
 
     var action = actions[options.action];
 
@@ -126,7 +164,7 @@ module.exports = function (grunt) {
     if (action.needsToRun(options, this)) {
       
       grunt.log.subhead(tableHead(action));
-      return action.run(appdev, options, this, log).then(joy, suffering);
+      return action.run(appdev, options, this, log).then(joy, suffering).done();
 
     } else {
       grunt.log.ok(action.presentTense + ' canceled; no qualifying files were found.');

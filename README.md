@@ -55,10 +55,16 @@ grunt.initConfig({
 ### Configuration
 
 #### options.applicationKey
-Type: 'String'
+Type: `String`
 **Required**
 
 The application key of the application, theme, or extension you are working on in Developer Center.
+
+#### options.noStoreAuth
+Type: `Boolean`
+Default value: `false`
+
+The task will normally prompt you for your password and then store authentication tokens in your home directory using Multipass. It never stores passwords in plaintext. However, if you want to manage your authentication manually instead, you can remove this behavior by setting `noStoreAuth` to `true`.
 
 #### options.action
 Type: `String`

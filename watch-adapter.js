@@ -10,15 +10,25 @@ var delay = 200;
 
 module.exports = function(grunt, options) {
 
+  var changed;
+  function resetChanged() {
+    changed = Object.create(null);
+    if (options.always) {
+      options.always.forEach(function(p) {
+        changed[p] = true;
+      });
+    }
+  }
+
   assert(options.src && options.action, 'Please supply a src and action path to modify in the grunt config.');
 
-  var changed = Object.create(null);
+  resetChanged();
 
   var onChange = debounce(function() {
     var src = Object.keys(changed);
     grunt.verbose.ok('Updating change hash in ' + options.src + ' to include ' + grunt.log.wordlist(src));
     grunt.config(options.src, src);
-    changed = Object.create(null);
+    resetChanged();
   }, delay, { leading: true, trailing: true });
 
   grunt.verbose.ok('Attaching grunt watch task to mozusync ' + options.action);

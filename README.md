@@ -124,7 +124,7 @@ watchAdapter(grunt, {
 });
 ```
 
-The watch adapter takes two arguments. The first must be the `grunt` instance passed into your Gruntfile. The second must be an object with a `src` property representing the object in the Grunt config to change, and an `action` property representing the type of action this task will take.
+The watch adapter takes two arguments. The first must be the `grunt` instance passed into your Gruntfile. The second must be an object with a `src` property representing the object in the Grunt config to change, and an `action` property representing the type of action this task will take. Optionally, the second config argument may take an `always` property, consisting of an array of paths that should always stay in the `src`, whether they have triggered a change event or not.
 
 Once you run this function, your Gruntfile is listening for `watch` events and updating its files config dynamically.
 

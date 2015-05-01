@@ -13,18 +13,19 @@ var groupBy = require('lodash.groupby');
 var appDevUtils = require('mozu-appdev-utils');
 var Multipass = require('mozu-multipass');
 var inquirer = require('inquirer');
+var chalk = require('chalk');
 
-function PromptingPass() {
-  var proto = Multipass();
+function PromptingPass(client) {
+  var proto = Multipass(client);
   var o = Object.create(proto);
   o.get = function(claimtype, context, callback) {
     return proto.get.call(this, claimtype, context, function(err, ticket) {
       if (claimtype === "developer" && !ticket && !context.developerAccount.password) {
-        process.stdout.write('\u0007'); // ding!
+        process.stdout.write('\u0007\n'); // ding!
         inquirer.prompt([{
           type: 'password',
           name: 'password',
-          message: 'Developer password for ' + context.developerAccount.emailAddress + ':',
+          message: chalk.bold.red('Developer password for ' + context.developerAccount.emailAddress + ':'),
           validate: function(str) {
             return !!str;
           }
@@ -37,7 +38,7 @@ function PromptingPass() {
       }
     });
   };
-  return o;
+  return client.authenticationStorage = o;
 };
 
 var customErrors = {
@@ -148,12 +149,12 @@ module.exports = function (grunt) {
 
     var plugins;
     if (!options.noStoreAuth) {
-      plugins = {
-        authenticationStorage: PromptingPass()
-      };
+      plugins = [PromptingPass]
     }
 
-    var appdev = appDevUtils(options.applicationKey, options.context, plugins);
+    var appdev = appDevUtils(options.applicationKey, options.context, {
+      plugins: plugins
+    });
 
     var action = actions[options.action];
 

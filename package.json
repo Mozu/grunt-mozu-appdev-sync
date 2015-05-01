@@ -23,8 +23,8 @@
     "inquirer": "^0.8.2",
     "lodash.debounce": "^3.0.2",
     "lodash.groupby": "^3.1.0",
-    "mozu-appdev-utils": "^0.3.0",
-    "mozu-multipass": "^0.1.4"
+    "mozu-appdev-utils": "^0.3.3",
+    "mozu-multipass": "^0.2.2"
   },
   "peerDependencies": {
     "grunt": ">=0.4.0"

@@ -1,6 +1,6 @@
 {
   "name": "grunt-mozu-appdev-sync",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Syncs a local project with the Mozu Developer Center.",
   "repository": "http://tfs.corp.volusion.com:8080/tfs/VNext/Prototype/_git/grunt-mozu-appdev-sync",
   "author": {

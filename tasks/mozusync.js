@@ -127,9 +127,6 @@ module.exports = function (grunt) {
   };
 
   function suffering(e) {
-    if (grunt.option("debug")) {
-      throw e;
-    }
     grunt.fail.fatal(grunt.log.wraptext(67, getCustomMessage(e.body || e)));
   }
 
@@ -165,7 +162,7 @@ module.exports = function (grunt) {
     if (action.needsToRun(options, this)) {
       
       grunt.log.subhead(tableHead(action));
-      return action.run(appdev, options, this, log).then(joy, suffering).done();
+      action.run(appdev, options, this, log).then(joy, suffering);
 
     } else {
       grunt.log.ok(action.presentTense + ' canceled; no qualifying files were found.');

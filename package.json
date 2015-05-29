@@ -24,7 +24,8 @@
     "lodash.debounce": "^3.0.2",
     "lodash.groupby": "^3.1.0",
     "mozu-appdev-utils": "^0.3.4",
-    "mozu-multipass": "^0.2.3"
+    "mozu-multipass": "^0.2.3",
+    "mozu-node-sdk": "^1.17.1512-4.0-hotfix3"
   },
   "peerDependencies": {
     "grunt": ">=0.4.0"

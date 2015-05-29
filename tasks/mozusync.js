@@ -144,9 +144,9 @@ module.exports = function (grunt) {
       action: 'upload'
     });
 
-    var plugins;
+    var plugins = [ require('mozu-node-sdk/plugins/fiddler-proxy') ];
     if (!options.noStoreAuth) {
-      plugins = [PromptingPass]
+      plugins.push(PromptingPass);
     }
 
     var appdev = appDevUtils(options.applicationKey, options.context, {

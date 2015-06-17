@@ -46,6 +46,7 @@ var customErrors = {
 };
 
 function getCustomMessage(err) {
+  if (!err) return "Unknown error! Please try again.";
   var errorCode = err.errorCode || err.originalError && err.originalError.errorCode;
   if (errorCode && customErrors[errorCode]) {
     return customErrors[errorCode];
@@ -127,7 +128,7 @@ module.exports = function (grunt) {
   };
 
   function suffering(e) {
-    grunt.fail.fatal(grunt.log.wraptext(67, getCustomMessage(e.body || e)));
+    grunt.fail.fatal(grunt.log.wraptext(67, getCustomMessage(e && e.body || e)));
   }
 
   function tableHead(action) {

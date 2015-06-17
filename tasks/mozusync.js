@@ -145,6 +145,8 @@ module.exports = function (grunt) {
       action: 'upload'
     });
 
+    var plugins;
+
     if (!options.noStoreAuth) {
       plugins = [PromptingPass];
     }

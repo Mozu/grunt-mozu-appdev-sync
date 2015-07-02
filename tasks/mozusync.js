@@ -14,6 +14,7 @@ var appDevUtils = require('mozu-appdev-utils');
 var Multipass = require('mozu-multipass');
 var inquirer = require('inquirer');
 var chalk = require('chalk');
+var watchAdapter = require('../watch-adapter');
 
 function PromptingPass(client) {
   var proto = Multipass(client);
@@ -135,6 +136,8 @@ module.exports = function (grunt) {
     return action.presentTense + " progress:" + grunt.util.linefeed + grunt.util.linefeed + action.columnHeaders;
   }
 
+  var watchesComplete = false;
+
   grunt.registerMultiTask('mozusync', 'Syncs a local project with the Mozu Developer Center.', function () {
 
     var done = this.async();
@@ -144,6 +147,13 @@ module.exports = function (grunt) {
     var options = this.options({
       action: 'upload'
     });
+
+    if (options.watchAdapters && !watchesComplete) {
+      options.watchAdapters.forEach(function(config) {
+        watchAdapter(grunt, config);
+      });
+      watchesComplete = true;
+    }
 
     var plugins;
 

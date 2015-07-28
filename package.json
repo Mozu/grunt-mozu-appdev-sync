@@ -18,12 +18,12 @@
   },
   "license": "MIT",
   "dependencies": {
-    "chalk": "^1.0.0",
+    "chalk": "^1.1.0",
     "humanize": "0.0.9",
-    "inquirer": "^0.8.2",
-    "lodash.debounce": "^3.0.2",
-    "lodash.groupby": "^3.1.0",
-    "mozu-appdev-utils": "^0.3.5",
+    "inquirer": "^0.9.0",
+    "lodash.debounce": "^3.1.1",
+    "lodash.groupby": "^3.1.1",
+    "mozu-appdev-utils": "^0.3.6",
     "mozu-multipass": "^0.2.3"
   },
   "peerDependencies": {

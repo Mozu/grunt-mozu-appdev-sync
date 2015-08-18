@@ -30,8 +30,15 @@ grunt.initConfig({
   mozusync: {
     options: {
       // Task-specific options go here.
-      applicationKey: 'namespace-applicationname-version-release',
-      context: require('./mozu.config.json')
+      applicationKey: 'namespace.applicationname.1.0.0.Release',
+      context: {
+        appKey: 'namespace.syncapp.1.0.0.Release',
+        sharedSecret: '1234567890',
+        developerAccount: {
+          emailAddress: 'jameszetlen@volusion.com'
+        },
+        developerAccountId: 2
+      },
       noclobber: true
     },
     all: {
@@ -52,6 +59,31 @@ grunt.initConfig({
 })
 ```
 
+### A Common Way To Do It
+
+The above depicted configuration is nice and simple, but it does hardcode specific Mozu environment information into the Gruntfile. You may be moving your project work from theme to theme in your Mozu account, or sharing your work with other developers. It's best to keep your Mozu environment information separate from the Gruntfile itself.
+
+If you used the [Mozu Yeoman theme generator][1] to scaffold your theme project folder, or you are familiar with the Mozu Node SDK, you know that it likes to store credentials in a file called `mozu.config.json`. You can maintain this file, and then hook it up to the Grunt task, using the following pattern, which takes advantage of Grunt's template interpolation:
+
+```js
+grunt.initConfig({
+
+  mozuconfig: require('./mozu.config.json')
+
+  mozusync: {
+    options: {
+      // Task-specific options go here.
+      applicationKey: '<%= mozuconfig.workingApplicationKey %>',
+      context: '<%= mozuconfig %>',
+      noclobber: true
+    },
+    // individual mozusync task config below
+  }
+})
+```
+
+The [Yeoman theme generator][1] will put this in a Gruntfile for you, either by creating a new one or modifying your existing one.
+
 ### Configuration
 
 #### options.applicationKey
@@ -59,6 +91,12 @@ Type: `String`
 **Required**
 
 The application key of the application, theme, or extension you are working on in Developer Center.
+
+#### options.context
+Type: 'Object'
+**Required**
+
+A context object to use to create a [Mozu Node SDK](https://github.com/mozu/mozu-node-sdk) client. It must contain an application key (different from the working key, this key is connected to your developer sync app that you have created and installed), a shared secret, a developer account ID, developer account login credentials, and a URL indicating the Mozu "home pod" environment to connect to.
 
 #### options.noStoreAuth
 Type: `Boolean`
@@ -90,12 +128,6 @@ For the `delete` action, **the files collection won't work**. Grunt automaticall
 For the `rename` action, populate a `files` object with `src`/`dest` mappings of each file you want to rename. **You will probably not configure this manually in your Gruntfile. You'll want to configure a `grunt-contrib-watch` adapter to do it dynamically.**
 
 For the `deleteAll` action, the `files` object is irrelevant. They're all doomed.
-
-#### options.context
-Type: 'Object'
-**Required**
-
-A context object to use to create a [Mozu Node SDK](https://github.com/mozu/mozu-node-sdk) client. It must contain an application key (different from the working key, this key is connected to your developer sync app that you have created and installed), a shared secret, a developer account ID, developer account login credentials, and a URL indicating the Mozu "home pod" environment to connect to.
 
 #### options.noclobber
 Type: `Boolean`
@@ -133,3 +165,5 @@ In lieu of a formal styleguide, take care to maintain the existing coding style.
 
 ## License
 Copyright (c) Volusion Inc.. Licensed under the MIT license.
+
+[1](https://www.npmjs.com/package/generator-mozu-theme)

@@ -82,9 +82,9 @@ module.exports = function (grunt) {
       },
       presentTense: 'Deleting',
       pastTense: 'Deleted',
-      columnHeaders: grunt.log.table([40], ['file']) + line(40),
+      columnHeaders: grunt.log.table([60], ['file']) + line(60),
       logline: function (r) {
-        return grunt.log.table([40], ["deleted " + r.path]);
+        return grunt.log.table([60], ["deleted " + r.path]);
       },
       needsToRun: function(options, context) {
         return context.data.remove.length > 0;
@@ -118,9 +118,9 @@ module.exports = function (grunt) {
       },
       presentTense: 'Deleting all!',
       pastTense: 'Deleted',
-      columnHeaders: grunt.log.table([40], ['file']) + line(40),
+      columnHeaders: grunt.log.table([60], ['file']) + line(60),
       logline: function (r) {
-        return grunt.log.table([40], ["deleted " + r.path]);
+        return grunt.log.table([60], ["deleted " + r.path]);
       },
       needsToRun: function() {
         return true;
@@ -129,7 +129,7 @@ module.exports = function (grunt) {
   };
 
   function suffering(e) {
-    grunt.fail.fatal(grunt.log.wraptext(67, getCustomMessage(e && e.body || e)));
+    grunt.fail.warn(grunt.log.wraptext(67, getCustomMessage(e && e.body || e)));
   }
 
   function tableHead(action) {
@@ -161,6 +161,14 @@ module.exports = function (grunt) {
       plugins = [PromptingPass];
     }
 
+    if (!options.applicationKey) {
+      return done(new Error('The `mozusync` task requires an `applicationKey` config property containing the application key of the theme in order to sync.'));
+    }
+
+    if (!options.context) {
+      return done(new Error('The `mozusync` task requires a `context` config property containing a full context for a Mozu Node SDK client in order to sync.'));
+    }
+
     var appdev = appDevUtils(options.applicationKey, options.context, {
       plugins: plugins
     });
@@ -168,7 +176,7 @@ module.exports = function (grunt) {
     var action = actions[options.action];
 
     if (!action) {
-      grunt.fail.fatal("Unknown mozusync action " + options.action + ".\nSpecify a valid action in your task config options under the `action` property. \nValid actions are: " + grunt.log.wordlist(Object.keys(actions)));
+      return done(new Error("Unknown mozusync action " + options.action + ".\nSpecify a valid action in your task config options under the `action` property. \nValid actions are: " + grunt.log.wordlist(Object.keys(actions))));
     }
 
     if (action.needsToRun(options, this)) {

@@ -166,4 +166,4 @@ In lieu of a formal styleguide, take care to maintain the existing coding style.
 ## License
 Copyright (c) Volusion Inc.. Licensed under the MIT license.
 
-[1](https://www.npmjs.com/package/generator-mozu-theme)
+[1]: https://www.npmjs.com/package/generator-mozu-theme "Mozu Yeoman Theme Generator"

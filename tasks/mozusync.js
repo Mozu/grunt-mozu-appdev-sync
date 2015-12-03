@@ -170,6 +170,8 @@ module.exports = function (grunt) {
       return done(new Error('The `mozusync` task requires a `context` config property containing a full context for a Mozu Node SDK client in order to sync.'));
     }
 
+    context.baseUrl = context.baseUrl || 'https://home.mozu.com';
+
     context.developerAccount = context.developerAccount || {};
 
     if (user && !password) {

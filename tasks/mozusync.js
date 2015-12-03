@@ -138,7 +138,7 @@ module.exports = function (grunt) {
 
   var watchesComplete = false;
 
-  grunt.registerMultiTask('mozusync', 'Syncs a local project with the Mozu Developer Center.', function () {
+  grunt.registerMultiTask('mozusync', 'Syncs a local project with the Mozu Developer Center.', function (user, password) {
 
     var done = this.async();
 
@@ -156,6 +156,7 @@ module.exports = function (grunt) {
     }
 
     var plugins;
+    var context = options.context;
 
     if (!options.noStoreAuth) {
       plugins = [PromptingPass];
@@ -165,11 +166,32 @@ module.exports = function (grunt) {
       return done(new Error('The `mozusync` task requires an `applicationKey` config property containing the application key of the theme in order to sync.'));
     }
 
-    if (!options.context) {
+    if (!context) {
       return done(new Error('The `mozusync` task requires a `context` config property containing a full context for a Mozu Node SDK client in order to sync.'));
     }
 
-    var appdev = appDevUtils(options.applicationKey, options.context, {
+    context.developerAccount = context.developerAccount || {};
+
+    if (user && !password) {
+      password = user;
+      user = null;
+    }
+
+    if (user) {
+      grunt.verbose.ok('Using developer account `' + user + '`, provided at command line.');
+      context.developerAccount.emailAddress = user;
+    }
+
+    if (!options.context.developerAccount.emailAddress)  {
+      return done(new Error('The `mozusync` task requires a `context.developerAccount.emailAddress` property, either provided in mozu.config.json or at the command line as the first argument to the task, e.g. `grunt mozusync:upload:user@example.com:Password123`.'));
+    }
+
+    if (password) {
+      grunt.verbose.ok('Password provided at command line.');
+      context.developerAccount.password = password;
+    }
+
+    var appdev = appDevUtils(options.applicationKey, context, {
       plugins: plugins
     });
 

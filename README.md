@@ -141,6 +141,22 @@ Default value: `false`
 
 This option applies to the `upload` action. By default, this action will use checksums to determine if the local file and the remote file are identical, and will skip the upload if they are. Set this to true to override this behavior.
 
+### Authentication with command line arguments
+
+By default, the task will pause Grunt execution and prompt the user to input a password in the terminal. If Grunt is running on a continuous integration server and/or you are using this task in an automated deployment, it would be more appropriate to supply a password as part of the scripted environment. **You can provide username and password information as command-line arguments to Grunt instead.**
+
+Assuming that you have configured a `mozusync` task target called `upload`, as in the example above, you can supply the username and password like this:
+```sh
+grunt mozusync:upload:user@example.com:my_password_123
+```
+
+Or, you can set the `developerAccount.emailAddress` in `mozu.config.json` and supply only the password:
+```sh
+grunt mozusync:upload:my_password_123
+```
+
+Note that you must run the `mozusync` task separately to use command-line authentication; you cannot run it as part of an aggregate task or default build, to avoid exposing password information to untrusted code. If `mozusync` is part of your default task, just configure a separate aggregate task that doesn't include `mozusync`, and configure your CI server to run that task, before running `grunt mozusync` separately with the provided authentication.
+
 ### The `grunt-contrib-watch` adapter
 
 The [grunt-contrib-watch](https://github.com/gruntjs/grunt-contrib-watch) is useful for filesystem watching and synchronizing on save. One common problem is that the watch task can only run other tasks, and other tasks are not aware of which files changed, so by default they will run on all files.

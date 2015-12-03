@@ -2,9 +2,6 @@
 
 Syncs a local project with the Mozu Developer Center.
 
-## This package is currently a prerelease.
-**This contains pre-release code. It may have behaviors or rely on features that don't work in Mozu production environments. Use with caution!**
-
 ## Getting Started
 This plugin requires Grunt.
 
@@ -32,16 +29,14 @@ grunt.initConfig({
       // Task-specific options go here.
       applicationKey: 'namespace.applicationname.1.0.0.Release',
       context: {
-        appKey: 'namespace.syncapp.1.0.0.Release',
-        sharedSecret: '1234567890',
         developerAccount: {
-          emailAddress: 'jameszetlen@volusion.com'
+          emailAddress: 'user@example.com'
         },
         developerAccountId: 2
       },
       noclobber: true
     },
-    all: {
+    upload: {
       // Target-specific file lists and/or options go here.
       src: ['./assets/dist/**/*']
     },
@@ -68,21 +63,33 @@ If you used the [Mozu Yeoman theme generator][1] to scaffold your theme project 
 ```js
 grunt.initConfig({
 
-  mozuconfig: require('./mozu.config.json')
+  mozuconfig: require('./mozu.config.json'),
 
   mozusync: {
     options: {
-      // Task-specific options go here.
       applicationKey: '<%= mozuconfig.workingApplicationKey %>',
       context: '<%= mozuconfig %>',
       noclobber: true
     },
     // individual mozusync task config below
   }
-})
+
+});
 ```
 
 The [Yeoman theme generator][1] will put this in a Gruntfile for you, either by creating a new one or modifying your existing one.
+
+**You can also install the [Mozu App generator][2] and use it to create a `mozu.config.json` file.**
+
+To install the generator, run
+```sh
+npm install -g generator-mozu-app
+```
+
+And then, in any directory, you can create or modify your `mozu.config.json` environment file by running:
+```sh
+yo mozu-app --config
+```
 
 ### Configuration
 
@@ -93,10 +100,13 @@ Type: `String`
 The application key of the application, theme, or extension you are working on in Developer Center.
 
 #### options.context
-Type: 'Object'
+Type: `Object`
 **Required**
 
-A context object to use to create a [Mozu Node SDK](https://github.com/mozu/mozu-node-sdk) client. It must contain an application key (different from the working key, this key is connected to your developer sync app that you have created and installed), a shared secret, a developer account ID, developer account login credentials, and a URL indicating the Mozu "home pod" environment to connect to.
+A context object to use to create a [Mozu Node SDK](https://github.com/mozu/mozu-node-sdk) client. It should include:
+ - `developerAccountId`: a developer account ID. You can see your developer account ID in the Mozu Launchpad when you select which Dev Center to login to. This is required.
+ - `developerAccount`: an object representing your user login. Unless you are supplying this information at the command line as described below, this is required. It should be an object with an `emailAddress` property containing your user email, as shown above. You can also supply a `password` here to avoid being prompted, but be careful not to put a plaintext password in your Gruntfile. You could, for instance, use `process.env` to assign the value of an environment variable.
+ - `baseUrl`: a URL representing the Mozu environment. Unless you have special access to an internal preproduction Mozu environment, you don't need to provide this.
 
 #### options.noStoreAuth
 Type: `Boolean`
@@ -183,3 +193,4 @@ In lieu of a formal styleguide, take care to maintain the existing coding style.
 Copyright (c) Volusion Inc.. Licensed under the MIT license.
 
 [1]: https://www.npmjs.com/package/generator-mozu-theme "Mozu Yeoman Theme Generator"
+[2]: https://www.npmjs.com/package/generator-mozu-app "Mozu Yeoman App Generator"

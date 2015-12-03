@@ -43,7 +43,7 @@ function PromptingPass(client) {
 };
 
 var customErrors = {
-  INVALID_CREDENTIALS: 'Invalid credentials. Please check your mozu.config.json file to see that you are using the right developer account, application key, shared secret, and environment.'
+  INVALID_CREDENTIALS: 'Invalid credentials. Please check your mozu.config.json file to see that you are using the right developer account, application key, and environment.'
 };
 
 function getCustomMessage(err) {

@@ -26,52 +26,80 @@ function getEnvironmentName(context) {
   }, null);
 }
 
-// hack
-var invalidateKeychain = function() {};
-
-function PromptingPass(client) {
-  var proto = Multipass(client);
-  var o = Object.create(proto);
-  o.get = function(claimtype, context, callback) {
-    return proto.get.call(this, claimtype, context, function(err, ticket) {
-      var serviceName = 'Mozu AppDev Sync: ' + getEnvironmentName(context);
-      if (claimtype === "developer" && !ticket && !context.developerAccount.password) {
-        clortho({
-          service: serviceName,
-          username: context.developerAccount.emailAddress
-        }).then(function(credential) {
-          invalidateKeychain = function() {
-            return clortho.forService(serviceName).removeFromKeychain(
-              credential.username
-            );
-          };
-          context.developerAccount.emailAddress = credential.username;
-          context.developerAccount.password = credential.password;
-          callback(null, null);
-        });
-      } else {
-        callback(null, ticket);
-      }
-    });
-  };
-  return client.authenticationStorage = o;
-};
-
-var customErrors = {
-  INVALID_CREDENTIALS: 'Invalid credentials. Please check your mozu.config.json file to see that you are using the right developer account, application key, and environment.'
-};
-
-function getCustomMessage(err) {
-  if (!err) return "Unknown error! Please try again.";
-  var errorCode = err.errorCode || err.originalError && err.originalError.errorCode;
-  if (errorCode && customErrors[errorCode]) {
-    return customErrors[errorCode];
-  }
-  return err.toString();
-}
 
 module.exports = function (grunt) {
 
+  // hack in case there is an unknown race condition and suffering occurs
+  // before the MozuClortho object is created.
+  var invalidateKeychain = function() { return Promise.resolve(); };
+
+  function PromptingPass(client) {
+    var proto = Multipass(client);
+    var o = Object.create(proto);
+    o.get = function(claimtype, context, callback) {
+      return proto.get.call(this, claimtype, context, function(err, ticket) {
+        var username = context.developerAccount.emailAddress;
+        var serviceName = 'Mozu AppDev Sync: ' + getEnvironmentName(context);
+        var MozuClortho = clortho.forService(serviceName);
+        if (claimtype === "developer" && !ticket && !context.developerAccount.password) {
+          MozuClortho.getFromKeychain(username)
+          .then(function(credential) {
+            grunt.verbose.ok(
+              'Found credential for ' + username + ' on ' + serviceName + 
+              ' in system keychain. Obtaining new auth ticket...'
+            );
+            return credential;
+          })
+          .catch(function() {
+            grunt.verbose.ok(
+              'Could not find a stored credential for ' + username + ' on ' +
+              serviceName + '. Need authorization to upload.'
+            );
+            return MozuClortho.prompt(
+              username,
+              'Enter your password to upload to ' + serviceName + '.'
+            );
+          })
+          .then(function(credential) {
+            grunt.verbose.ok(
+              'Storing credential in system keychain...'
+            );
+            return MozuClortho.trySaveToKeychain(credential);
+          })
+          .catch(function(e) {
+            grunt.fail.fatal(
+              'Need authorization for ' + serviceName + ' to continue.'
+            );
+          })
+          .then(function(credential) {
+            invalidateKeychain = function() {
+              grunt.verbose.ok('Removing credential from system keychain...');
+              return MozuClortho.removeFromKeychain(credential.username);
+            };
+            context.developerAccount.emailAddress = credential.username;
+            context.developerAccount.password = credential.password;
+            callback(null, null);
+          });
+        } else {
+          callback(null, ticket);
+        }
+      });
+    };
+    return client.authenticationStorage = o;
+  };
+
+  var customErrors = {
+    INVALID_CREDENTIALS: 'Invalid credentials. Please check your mozu.config.json file to see that you are using the right developer account, application key, and environment.'
+  };
+
+  function getCustomMessage(err) {
+    if (!err) return "Unknown error! Please try again.";
+    var errorCode = err.errorCode || err.originalError && err.originalError.errorCode;
+    if (errorCode && customErrors[errorCode]) {
+      return customErrors[errorCode];
+    }
+    return err.toString();
+  }
   function line(len) {
     return grunt.util.linefeed + grunt.util.repeat(len, '-');
   }

@@ -19,11 +19,13 @@
   "license": "MIT",
   "dependencies": {
     "chalk": "^1.1.1",
+    "clortho": "^1.0.4",
     "humanize": "0.0.9",
     "inquirer": "^0.10.1",
     "lodash.debounce": "^3.1.1",
     "lodash.groupby": "^3.1.1",
     "mozu-appdev-utils": "^1.0.0",
+    "mozu-metadata": "^2.3.1",
     "mozu-multipass": "^0.2.4"
   },
   "peerDependencies": {

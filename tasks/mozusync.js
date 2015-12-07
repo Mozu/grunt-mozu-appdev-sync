@@ -12,26 +12,41 @@ var humanize = require('humanize');
 var groupBy = require('lodash.groupby');
 var appDevUtils = require('mozu-appdev-utils');
 var Multipass = require('mozu-multipass');
-var inquirer = require('inquirer');
+var clortho = require('clortho');
+var MozuEnvironments = require('mozu-metadata/data/environments.json');
 var chalk = require('chalk');
 var watchAdapter = require('../watch-adapter');
+
+function getEnvironmentName(context) {
+  return Object.keys(MozuEnvironments).reduce(function(match, e) {
+    if (MozuEnvironments[e].homeDomain === context.baseUrl) {
+      return e;
+    }
+    return match;
+  }, null);
+}
+
+// hack
+var invalidateKeychain = function() {};
 
 function PromptingPass(client) {
   var proto = Multipass(client);
   var o = Object.create(proto);
   o.get = function(claimtype, context, callback) {
     return proto.get.call(this, claimtype, context, function(err, ticket) {
+      var serviceName = 'Mozu AppDev Sync: ' + getEnvironmentName(context);
       if (claimtype === "developer" && !ticket && !context.developerAccount.password) {
-        process.stdout.write('\u0007\n'); // ding!
-        inquirer.prompt([{
-          type: 'password',
-          name: 'password',
-          message: chalk.bold.red('Developer password for ' + context.developerAccount.emailAddress + ':'),
-          validate: function(str) {
-            return !!str;
-          }
-        }], function(answers) {
-          context.developerAccount.password = answers.password;
+        clortho({
+          service: serviceName,
+          username: context.developerAccount.emailAddress
+        }).then(function(credential) {
+          invalidateKeychain = function() {
+            return clortho.forService(serviceName).removeFromKeychain(
+              credential.username
+            );
+          };
+          context.developerAccount.emailAddress = credential.username;
+          context.developerAccount.password = credential.password;
           callback(null, null);
         });
       } else {
@@ -128,8 +143,16 @@ module.exports = function (grunt) {
     }
   };
 
-  function suffering(e) {
-    grunt.fail.warn(grunt.log.wraptext(67, getCustomMessage(e && e.body || e)));
+  function suffering(err) {
+    var errorCode = err.errorCode || err.originalError && err.originalError.errorCode;
+    if (errorCode === "INVALID_CREDENTIALS") {
+      invalidateKeychain().then(woe);
+    } else {
+      woe();
+    }
+    function woe() {
+      grunt.fail.warn(grunt.log.wraptext(67, getCustomMessage(err && err.body || err)));
+    }
   }
 
   function tableHead(action) {

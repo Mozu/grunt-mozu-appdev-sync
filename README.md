@@ -139,6 +139,12 @@ For the `rename` action, populate a `files` object with `src`/`dest` mappings of
 
 For the `deleteAll` action, the `files` object is irrelevant. They're all doomed.
 
+#### options.soloOnly
+Type: `Boolean`
+Default value: `false` for the `upload` and `rename` actions, `true` for the `delete` and `deleteAll` actions
+
+Some actions are destructive, such as `delete` and `deleteAll`, so this options serves as a safety measure: the task will only run if it was called directly from the command line, as in `grunt mozusync:del`, instead of as part of a grouped task, such as `grunt` or `grunt build`.
+
 #### options.noclobber
 Type: `Boolean`
 Default value: `false`
@@ -167,24 +173,11 @@ grunt mozusync:upload:my_password_123
 
 Note that you must run the `mozusync` task separately to use command-line authentication; you cannot run it as part of an aggregate task or default build, to avoid exposing password information to untrusted code. If `mozusync` is part of your default task, just configure a separate aggregate task that doesn't include `mozusync`, and configure your CI server to run that task, before running `grunt mozusync` separately with the provided authentication.
 
-### The `grunt-contrib-watch` adapter
+### Using with `grunt-contrib-watch` and other watch plugins
 
-The [grunt-contrib-watch](https://github.com/gruntjs/grunt-contrib-watch) is useful for filesystem watching and synchronizing on save. One common problem is that the watch task can only run other tasks, and other tasks are not aware of which files changed, so by default they will run on all files.
+The [grunt-contrib-watch](https://github.com/gruntjs/grunt-contrib-watch) is useful for filesystem watching and synchronizing on save. One common problem is that the watch task can only run other tasks, and other tasks are not aware of which files changed, so by default they will run on all files. The task already checks with the Mozu App Dev APIs and compares file checksums to avoid unnecessary uploads, but 
 
-This package includes an adapter function that can connect a task to the `grunt-contrib-watch` events and build file targets dynamically. If you are using `grunt-contrib-watch`, then you can add this to your Gruntfile:
-
-```js
-var watchAdapter = require('grunt-mozu-appdev-sync/watch-adapter');
-
-watchAdapter(grunt, {
-  src: 'mozusync.upload.src',
-  action: 'upload'
-});
-```
-
-The watch adapter takes two arguments. The first must be the `grunt` instance passed into your Gruntfile. The second must be an object with a `src` property representing the object in the Grunt config to change, and an `action` property representing the type of action this task will take. Optionally, the second config argument may take an `always` property, consisting of an array of paths that should always stay in the `src`, whether they have triggered a change event or not.
-
-Once you run this function, your Gruntfile is listening for `watch` events and updating its files config dynamically.
+Earlier versions of this plugin had "watch adapters", meant to hook directly in to `grunt-contrib-watch`. This had a number of disadvantages, so it has been removed. The new recommendation is to use the [`grunt-newer`](https://github.com/tschaub/grunt-newer) plugin in conjunction with `grunt-contrib-watch` and `grunt-mozu-appdev-sync`, which will optimize your workflow by only uploading necessary files.
 
 ## Contributing
 In lieu of a formal styleguide, take care to maintain the existing coding style. Add unit tests for any new or changed functionality. Lint and test your code using [Grunt](http://gruntjs.com/).

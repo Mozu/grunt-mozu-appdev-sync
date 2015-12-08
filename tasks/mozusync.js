@@ -15,7 +15,6 @@ var Multipass = require('mozu-multipass');
 var clortho = require('clortho');
 var MozuEnvironments = require('mozu-metadata/data/environments.json');
 var chalk = require('chalk');
-var watchAdapter = require('../watch-adapter');
 
 function getEnvironmentName(context) {
   return Object.keys(MozuEnvironments).reduce(function(match, e) {
@@ -41,45 +40,61 @@ module.exports = function (grunt) {
         var username = context.developerAccount.emailAddress;
         var serviceName = 'Mozu AppDev Sync: ' + getEnvironmentName(context);
         var MozuClortho = clortho.forService(serviceName);
-        if (claimtype === "developer" && !ticket && !context.developerAccount.password) {
-          MozuClortho.getFromKeychain(username)
-          .then(function(credential) {
-            grunt.verbose.ok(
-              'Found credential for ' + username + ' on ' + serviceName + 
-              ' in system keychain. Obtaining new auth ticket...'
-            );
-            return credential;
-          })
-          .catch(function() {
-            grunt.verbose.ok(
-              'Could not find a stored credential for ' + username + ' on ' +
-              serviceName + '. Need authorization to upload.'
-            );
-            return MozuClortho.prompt(
-              username,
-              'Enter your password to upload to ' + serviceName + '.'
-            );
-          })
-          .then(function(credential) {
-            grunt.verbose.ok(
-              'Storing credential in system keychain...'
-            );
-            return MozuClortho.trySaveToKeychain(credential);
-          })
-          .catch(function(e) {
-            grunt.fail.fatal(
-              'Need authorization for ' + serviceName + ' to continue.'
-            );
-          })
-          .then(function(credential) {
-            invalidateKeychain = function() {
-              grunt.verbose.ok('Removing credential from system keychain...');
-              return MozuClortho.removeFromKeychain(credential.username);
-            };
-            context.developerAccount.emailAddress = credential.username;
-            context.developerAccount.password = credential.password;
-            callback(null, null);
+        function invalidatePassword() {
+          grunt.verbose.ok('Removing invalid saved credential');
+          return MozuClortho.removeFromKeychain(username);
+        }
+        function invalidateTicket() {
+          grunt.verbose.ok('Removing invalid auth ticket');
+          return new Promise(function(resolve, reject) {
+            o.remove(claimtype, context, function(e) {
+              if (e) return reject(e);
+              return resolve();
+            });
           });
+        }
+        if (claimtype === "developer" && !context.developerAccount.password) {
+          invalidateKeychain = invalidateTicket;
+          if (!ticket) {
+            invalidateKeychain = invalidatePassword;
+            MozuClortho.getFromKeychain(username)
+            .then(function(credential) {
+              grunt.verbose.ok(
+                'Found credential for ' + username + ' on ' + serviceName + 
+                  ' in system keychain. Obtaining new auth ticket...'
+              );
+              return credential;
+            })
+            .catch(function() {
+              grunt.verbose.ok(
+                'Could not find a stored credential for ' + username + ' on ' +
+                  serviceName + '. Need authorization to upload.'
+              );
+              return MozuClortho.prompt(
+                username,
+                'Enter your password to upload to ' + serviceName + '.'
+              );
+            })
+            .then(function(credential) {
+              grunt.verbose.ok(
+                'Storing credential in system keychain...'
+              );
+              return MozuClortho.trySaveToKeychain(credential);
+            })
+            .catch(function(e) {
+              grunt.fail.fatal(
+                'Need authorization for ' + serviceName + ' to continue.'
+              );
+            })
+            .then(function(credential) {
+              context.developerAccount.emailAddress = credential.username;
+              context.developerAccount.password = credential.password;
+              callback(null, null);
+            });
+          } else {
+            grunt.verbose.ok('Found stored authentication ticket for ' + username);
+            callback(null, ticket);
+          }
         } else {
           callback(null, ticket);
         }
@@ -89,7 +104,7 @@ module.exports = function (grunt) {
   };
 
   var customErrors = {
-    INVALID_CREDENTIALS: 'Invalid credentials. Please check your mozu.config.json file to see that you are using the right developer account, application key, and environment.'
+    INVALID_CREDENTIALS: 'Invalid credentials. Please re-enter your username and password, and/or check your mozu.config.json file to see that you are using the right developer account ID and environment.'
   };
 
   function getCustomMessage(err) {
@@ -107,7 +122,7 @@ module.exports = function (grunt) {
   var actions = {
     upload: {
       run: function(util, options, context, progress) {
-        return util.uploadFiles(context.filesSrc, options, progress);
+        return util.uploadFiles(options.uploadList, options, progress);
       },
       presentTense: 'Uploading',
       pastTense: 'Uploaded',
@@ -116,8 +131,9 @@ module.exports = function (grunt) {
         return grunt.log.table([50,10,20], [r.path, humanize.filesize(r.sizeInBytes), r.type]);
       },
       needsToRun: function(options, context) {
-        return context.filesSrc.length > 0;
-      }
+        return options.uploadList.length > 0;
+      },
+      soloOnly: false
     },
     "delete": {
       run: function(util, options, context, progress) {
@@ -131,7 +147,8 @@ module.exports = function (grunt) {
       },
       needsToRun: function(options, context) {
         return context.data.remove.length > 0;
-      }
+      },
+      soloOnly: true
     },
     "rename": {
       run: function(util, options, context, progress) {
@@ -153,7 +170,8 @@ module.exports = function (grunt) {
       },
       needsToRun: function(options, context) {
         return context.filesSrc.length > 0;
-      }
+      },
+      soloOnly: false
     },
     "deleteAll": {
       run: function(util, options, context, progress) {
@@ -167,19 +185,26 @@ module.exports = function (grunt) {
       },
       needsToRun: function() {
         return true;
-      }
+      },
+      soloOnly: true
     }
   };
 
-  function suffering(err) {
-    var errorCode = err.errorCode || err.originalError && err.originalError.errorCode;
-    if (errorCode === "INVALID_CREDENTIALS") {
-      invalidateKeychain().then(woe);
-    } else {
-      woe();
-    }
-    function woe() {
-      grunt.fail.warn(grunt.log.wraptext(67, getCustomMessage(err && err.body || err)));
+  var stigmata = 0;
+  function predictSuffering(hubris) {
+    return function suffering(err) {
+      var errorCode = err.errorCode || err.originalError && err.originalError.errorCode;
+      if (errorCode === "INVALID_CREDENTIALS" && stigmata < 3) {
+        stigmata++;
+        invalidateKeychain().then(hubris).catch(woe);
+      } else {
+        woe(err);
+      }
+      function woe(err) {
+        var errorCode = err.errorCode || err.originalError && err.originalError.errorCode;
+        grunt.verbose.error(err)
+        grunt.fail.warn(grunt.log.wraptext(67, getCustomMessage(err && err.body || err)));
+      }
     }
   }
 
@@ -187,9 +212,9 @@ module.exports = function (grunt) {
     return action.presentTense + " progress:" + grunt.util.linefeed + grunt.util.linefeed + action.columnHeaders;
   }
 
-  var watchesComplete = false;
-
   grunt.registerMultiTask('mozusync', 'Syncs a local project with the Mozu Developer Center.', function (user, password) {
+
+    var self = this;
 
     var done = this.async();
 
@@ -198,13 +223,6 @@ module.exports = function (grunt) {
     var options = this.options({
       action: 'upload'
     });
-
-    if (options.watchAdapters && !watchesComplete) {
-      options.watchAdapters.forEach(function(config) {
-        watchAdapter(grunt, config);
-      });
-      watchesComplete = true;
-    }
 
     var plugins;
     var context = options.context;
@@ -254,10 +272,36 @@ module.exports = function (grunt) {
       return done(new Error("Unknown mozusync action " + options.action + ".\nSpecify a valid action in your task config options under the `action` property. \nValid actions are: " + grunt.log.wordlist(Object.keys(actions))));
     }
 
+    var soloTaskName = 'mozusync:' + this.target;
+    var lastArg = process.argv[process.argv.length-1];
+    if (
+      (options.hasOwnProperty('soloOnly') ? options.soloOnly : action.soloOnly)
+      &&
+      lastArg !== soloTaskName
+    ) {
+      grunt.fail.warn(
+        'The `' + soloTaskName + '` task is meant to be run only by itself, ' +
+        'but it was run as part of the task `' + lastArg + '`. Use the config ' +
+        '"soloOnly: false" to override.'
+      );
+    }
+
+    // TODO: this should go into the upload action as a "preprocess"
+    if (options.action === "upload") {
+      options.uploadList = self.filesSrc.filter(function(src) {
+        return grunt.file.exists(src) && !grunt.file.isDir(src);
+      });
+    }
+
+    var tryAction = function() {
+      return action.run(appdev, options, self, log);
+    }
+
     if (action.needsToRun(options, this)) {
-      
+
       grunt.log.subhead(tableHead(action));
-      action.run(appdev, options, this, log).then(joy, suffering);
+
+      tryAction().then(joy, predictSuffering(tryAction));
 
     } else {
       grunt.log.ok(action.presentTense + ' canceled; no qualifying files were found.');
@@ -316,6 +360,7 @@ module.exports = function (grunt) {
     }
 
     function joy() {
+      stigmata--;
       backpat();
       notify();
       done();

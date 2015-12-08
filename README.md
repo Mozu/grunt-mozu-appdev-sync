@@ -175,9 +175,45 @@ Note that you must run the `mozusync` task separately to use command-line authen
 
 ### Using with `grunt-contrib-watch` and other watch plugins
 
-The [grunt-contrib-watch](https://github.com/gruntjs/grunt-contrib-watch) is useful for filesystem watching and synchronizing on save. One common problem is that the watch task can only run other tasks, and other tasks are not aware of which files changed, so by default they will run on all files. The task already checks with the Mozu App Dev APIs and compares file checksums to avoid unnecessary uploads, but 
+The [grunt-contrib-watch](https://github.com/gruntjs/grunt-contrib-watch) is useful for filesystem watching and synchronizing on save. One common problem is that the watch task can only run other tasks, and other tasks are not aware of which files changed, so by default they will run on all files. The task already checks with the Mozu App Dev APIs and compares file checksums to avoid unnecessary uploads, but the act of checking this for every file in your theme is itself slow.
 
 Earlier versions of this plugin had "watch adapters", meant to hook directly in to `grunt-contrib-watch`. This had a number of disadvantages, so it has been removed. The new recommendation is to use the [`grunt-newer`](https://github.com/tschaub/grunt-newer) plugin in conjunction with `grunt-contrib-watch` and `grunt-mozu-appdev-sync`, which will optimize your workflow by only uploading necessary files.
+
+An example optimal workflow:
+```js
+    watch: {
+      javascript: {
+        files: [
+          'scripts/**/*.js'
+        ],
+        tasks: [
+          'newer:jshint:develop',
+          'mozutheme:quickcompile',
+          'newer:mozusync:upload'
+        ]
+      },
+      sync: {
+        files: [
+          'admin/**/*',
+          'labels/**/*',
+          'resources/**/*',
+          'packageconfig.xml',
+          'scripts/**/*',
+          'stylesheets/**/*',
+          'templates/**/*',
+          'theme.json',
+          '*thumb.png',
+          '*thumb.jpg',
+          'theme-ui.json',
+          '!*.orig',
+          '!.inherited'
+        ],
+        tasks: [
+          'newer:mozusync:upload'
+        ]
+      }
+    },
+```
 
 ## Contributing
 In lieu of a formal styleguide, take care to maintain the existing coding style. Add unit tests for any new or changed functionality. Lint and test your code using [Grunt](http://gruntjs.com/).

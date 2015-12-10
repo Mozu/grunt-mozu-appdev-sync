@@ -25,5 +25,8 @@
     "mozu-appdev-utils": "^1.1.0",
     "mozu-metadata": "^2.3.1",
     "mozu-multipass": "^0.3.0"
+  },
+  "engines": {
+    "node": "^4.1.1"
   }
 }

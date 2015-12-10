@@ -1,6 +1,6 @@
 {
   "name": "grunt-mozu-appdev-sync",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Syncs a local project with the Mozu Developer Center.",
   "repository": "http://tfs.corp.volusion.com:8080/tfs/VNext/Prototype/_git/grunt-mozu-appdev-sync",
   "author": {
@@ -14,7 +14,7 @@
     "mozu-appdev"
   ],
   "engines": {
-    "node": ">= 0.10.0"
+    "node": "^4.1.1"
   },
   "license": "MIT",
   "dependencies": {
@@ -25,8 +25,5 @@
     "mozu-appdev-utils": "^1.1.0",
     "mozu-metadata": "^2.3.1",
     "mozu-multipass": "^0.3.0"
-  },
-  "engines": {
-    "node": "^4.1.1"
   }
 }

@@ -8,7 +8,7 @@
   },
   "scripts": {
     "ci-build": "npm test",
-    "ci-build-stable": "npm run ci-build-stable",
+    "ci-build-stable": "npm run ci-build",
     "postci-build-stable": "mozu-validate-npm-package",
     "test": "echo No test specified!",
     "cov": "echo No coverage specified!"

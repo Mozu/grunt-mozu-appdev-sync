@@ -1,6 +1,6 @@
 /*
  * grunt-mozu-appdev-sync
- * 
+ *
  *
  * Copyright (c) 2015 James Zetlen, Volusion Inc.
  * Licensed under the MIT license.
@@ -9,7 +9,7 @@
 'use strict';
 
 var humanize = require('humanize');
-var groupBy = require('lodash.groupby');
+var groupBy = require('group-by');
 var appDevUtils = require('mozu-appdev-utils');
 var Multipass = require('mozu-multipass');
 var clortho = require('clortho');
@@ -60,7 +60,7 @@ module.exports = function (grunt) {
             MozuClortho.getFromKeychain(username)
             .then(function(credential) {
               grunt.verbose.ok(
-                'Found credential for ' + username + ' on ' + serviceName + 
+                'Found credential for ' + username + ' on ' + serviceName +
                   ' in system keychain. Obtaining new auth ticket...'
               );
               return credential;

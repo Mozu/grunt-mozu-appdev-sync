@@ -25,7 +25,7 @@
   "license": "MIT",
   "dependencies": {
     "chalk": "^1.1.1",
-    "clortho": "^1.2.1",
+    "clortho": "^1.2.2",
     "humanize": "0.0.9",
     "lodash.groupby": "^3.1.1",
     "mozu-appdev-utils": "^1.1.0",
@@ -33,6 +33,6 @@
     "mozu-multipass": "^0.3.0"
   },
   "devDependencies": {
-    "mozu-validate-npm-package": "^1.0.2"
+    "mozu-validate-npm-package": "^1.0.3"
   }
 }

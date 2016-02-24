@@ -12,7 +12,7 @@ var humanize = require('humanize');
 var groupBy = require('group-by');
 var appDevUtils = require('mozu-appdev-utils');
 var Multipass = require('mozu-multipass');
-var clortho = require('clortho');
+var prompt = require('prompt');
 var MozuEnvironments = require('mozu-metadata/data/environments.json');
 var chalk = require('chalk');
 
@@ -28,80 +28,123 @@ function getEnvironmentName(context) {
 
 module.exports = function (grunt) {
 
-  // hack in case there is an unknown race condition and suffering occurs
-  // before the MozuClortho object is created.
-  var invalidateKeychain = function() { return Promise.resolve(); };
-
-  function PromptingPass(client) {
+  function PromptForPassword(client) {
+    var context = client.context;
+    var username = context.developerAccount.emailAddress;
     var proto = Multipass(client);
-    var o = Object.create(proto);
-    o.get = function(claimtype, context, callback) {
-      return proto.get.call(this, claimtype, context, function(err, ticket) {
-        var username = context.developerAccount.emailAddress;
-        var serviceName = 'Mozu AppDev Sync: ' + getEnvironmentName(context);
-        var MozuClortho = clortho.forService(serviceName);
-        function invalidatePassword() {
-          grunt.verbose.ok('Removing invalid saved credential');
-          return MozuClortho.removeFromKeychain(username);
+    var authStorage = Object.create(proto);
+
+    var usernameProps = {
+      name: 'username',
+      required: true,
+      message: 'Developer Account Username'
+    };
+
+    var passwordProps = {
+      required: true,
+      name: 'password',
+      hidden: true,
+      message: 'Developer Account Password'
+    };
+
+    var prompts = [passwordProps];
+
+    if (!username) {
+      prompts.unshift(usernameProps);
+    }
+
+    authStorage.get = function(claimtype, ctx, callback) {
+      prompt.start();
+      prompt.get(prompts, function (err, result) {
+        if (result.username) {
+          ctx.developerAccount.emailAddress = result.username; 
         }
-        function invalidateTicket() {
-          grunt.verbose.ok('Removing invalid auth ticket');
-          return new Promise(function(resolve, reject) {
-            o.remove(claimtype, context, function(e) {
-              if (e) return reject(e);
-              return resolve();
-            });
-          });
+
+        if (result.password) {
+          ctx.developerAccount.password = result.password;  
         }
-        if (claimtype === "developer" && !context.developerAccount.password) {
-          invalidateKeychain = invalidateTicket;
-          if (!ticket) {
-            invalidateKeychain = invalidatePassword;
-            MozuClortho.getFromKeychain(username)
-            .then(function(credential) {
-              grunt.verbose.ok(
-                'Found credential for ' + username + ' on ' + serviceName +
-                  ' in system keychain. Obtaining new auth ticket...'
-              );
-              return credential;
-            })
-            .catch(function() {
-              grunt.verbose.ok(
-                'Could not find a stored credential for ' + username + ' on ' +
-                  serviceName + '. Need authorization to upload.'
-              );
-              return MozuClortho.prompt(
-                username,
-                'Enter your password to upload to ' + serviceName + '.'
-              );
-            })
-            .then(function(credential) {
-              grunt.verbose.ok(
-                'Storing credential in system keychain...'
-              );
-              return MozuClortho.trySaveToKeychain(credential);
-            })
-            .catch(function(e) {
-              grunt.fail.fatal(
-                'Need authorization for ' + serviceName + ' to continue.'
-              );
-            })
-            .then(function(credential) {
-              context.developerAccount.emailAddress = credential.username;
-              context.developerAccount.password = credential.password;
-              callback(null, null);
-            });
-          } else {
-            grunt.verbose.ok('Found stored authentication ticket for ' + username);
-            callback(null, ticket);
-          }
-        } else {
-          callback(null, ticket);
-        }
+
+        callback(null, null);
       });
     };
-    return client.authenticationStorage = o;
-  };
+
+    return client.authenticationStorage = authStorage;
+  }
+
+  // hack in case there is an unknown race condition and suffering occurs
+  // before the MozuClortho object is created.
+  // var invalidateKeychain = function() { return Promise.resolve(); };
+
+  // function PromptingPass(client) {
+  //   var proto = Multipass(client);
+  //   var o = Object.create(proto);
+  //   o.get = function(claimtype, context, callback) {
+  //     return proto.get.call(this, claimtype, context, function(err, ticket) {
+  //       var username = context.developerAccount.emailAddress;
+  //       var serviceName = 'Mozu AppDev Sync: ' + getEnvironmentName(context);
+  //       var MozuClortho = clortho.forService(serviceName);
+  //       function invalidatePassword() {
+  //         grunt.verbose.ok('Removing invalid saved credential');
+  //         return MozuClortho.removeFromKeychain(username);
+  //       }
+  //       function invalidateTicket() {
+  //         grunt.verbose.ok('Removing invalid auth ticket');
+  //         return new Promise(function(resolve, reject) {
+  //           o.remove(claimtype, context, function(e) {
+  //             if (e) return reject(e);
+  //             return resolve();
+  //           });
+  //         });
+  //       }
+  //       if (claimtype === "developer" && !context.developerAccount.password) {
+  //         invalidateKeychain = invalidateTicket;
+  //         if (!ticket) {
+  //           invalidateKeychain = invalidatePassword;
+  //           MozuClortho.getFromKeychain(username)
+  //           .then(function(credential) {
+  //             grunt.verbose.ok(
+  //               'Found credential for ' + username + ' on ' + serviceName +
+  //                 ' in system keychain. Obtaining new auth ticket...'
+  //             );
+  //             return credential;
+  //           })
+  //           .catch(function() {
+  //             grunt.verbose.ok(
+  //               'Could not find a stored credential for ' + username + ' on ' +
+  //                 serviceName + '. Need authorization to upload.'
+  //             );
+  //             return MozuClortho.prompt(
+  //               username,
+  //               'Enter your password to upload to ' + serviceName + '.'
+  //             );
+  //           })
+  //           .then(function(credential) {
+  //             grunt.verbose.ok(
+  //               'Storing credential in system keychain...'
+  //             );
+  //             return MozuClortho.trySaveToKeychain(credential);
+  //           })
+  //           .catch(function(e) {
+  //             grunt.fail.fatal(
+  //               'Need authorization for ' + serviceName + ' to continue.'
+  //             );
+  //           })
+  //           .then(function(credential) {
+  //             context.developerAccount.emailAddress = credential.username;
+  //             context.developerAccount.password = credential.password;
+  //             callback(null, null);
+  //           });
+  //         } else {
+  //           grunt.verbose.ok('Found stored authentication ticket for ' + username);
+  //           callback(null, ticket);
+  //         }
+  //       } else {
+  //         callback(null, ticket);
+  //       }
+  //     });
+  //   };
+  //   return client.authenticationStorage = o;
+  // };
 
   var customErrors = {
     INVALID_CREDENTIALS: 'Invalid credentials. Please re-enter your username and password, and/or check your mozu.config.json file to see that you are using the right developer account ID and environment.'
@@ -228,7 +271,7 @@ module.exports = function (grunt) {
     var context = options.context;
 
     if (!options.noStoreAuth) {
-      plugins = [PromptingPass];
+      plugins = [PromptForPassword];
     }
 
     if (!options.applicationKey) {

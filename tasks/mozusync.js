@@ -31,6 +31,7 @@ module.exports = function (grunt) {
   function PromptForPassword(client) {
     var context = client.context;
     var username = context.developerAccount.emailAddress;
+    var password = context.developerAccount.password;
     var proto = Multipass(client);
     var authStorage = Object.create(proto);
 
@@ -47,25 +48,38 @@ module.exports = function (grunt) {
       message: 'Developer Account Password'
     };
 
-    var prompts = [passwordProps];
+    var askForCredentials = function(prompts, ctx) {
+      return prompts.length > 0 && (!ctx.developerAccount.emailAddress || !ctx.developerAccount.password);
+    }
+
+    var prompts = [];
 
     if (!username) {
-      prompts.unshift(usernameProps);
+      prompts.push(usernameProps);
+    }
+
+    if (!password) {
+      prompts.push(passwordProps);
     }
 
     authStorage.get = function(claimtype, ctx, callback) {
-      prompt.start();
-      prompt.get(prompts, function (err, result) {
-        if (result.username) {
-          ctx.developerAccount.emailAddress = result.username; 
-        }
+      if (askForCredentials(prompts, ctx)) {
 
-        if (result.password) {
-          ctx.developerAccount.password = result.password;  
-        }
+        prompt.get(prompts, function (err, result) {
+          if (result.username) {
+            ctx.developerAccount.emailAddress = result.username; 
+          }
 
+          if (result.password) {
+            ctx.developerAccount.password = result.password;  
+          }
+          callback(null, null);
+          prompt.stop();
+        });
+      }
+      else {
         callback(null, null);
-      });
+      }
     };
 
     return client.authenticationStorage = authStorage;

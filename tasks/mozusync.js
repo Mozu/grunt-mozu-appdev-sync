@@ -45,7 +45,11 @@ module.exports = function (grunt) {
           var MozuClortho = clortho.forService(serviceName);
           function invalidatePassword() {
             grunt.verbose.ok('Removing invalid saved credential');
-            return MozuClortho.removeFromKeychain(username);
+            return MozuClortho.removeFromKeychain(username)
+              .catch(function(e) {
+                grunt.verbose.writeln('Failed to remove from keychain: ' + e);
+                return true;
+              });
           }
           function invalidateTicket() {
             grunt.verbose.ok('Removing invalid auth ticket');

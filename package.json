@@ -32,8 +32,7 @@
     "humanize": "0.0.9",
     "mozu-appdev-utils": "^1.1.2",
     "mozu-metadata": "^2.3.6",
-    "mozu-multipass": "^0.3.3",
-    "prompt": "^1.0.0"
+    "mozu-multipass": "^0.3.3"
   },
   "devDependencies": {
     "mozu-validate-npm-package": "^1.2.1"

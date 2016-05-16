@@ -114,12 +114,6 @@ Default value: `false`
 
 The task will normally prompt you for your password and then store authentication tokens in your home directory using Multipass. It never stores passwords in plaintext. However, if you want to manage your authentication manually instead, you can remove this behavior by setting `noStoreAuth` to `true`.
 
-#### options.noAuthDialog
-Type: `Boolean`
-Default value: `false`
-
-When prompting you for your password, the task will use an OS dialog box where available (on OSX and Windows). To force the task to prompt in the console instead, set `noAuthDialog` to `true`.
-
 #### options.action
 Type: `String`
 Default value: `'upload'`

@@ -1,6 +1,6 @@
 {
   "name": "grunt-mozu-appdev-sync",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "description": "Syncs a local project with the Mozu Developer Center.",
   "main": "./tasks/mozusync.js",
   "repository": {

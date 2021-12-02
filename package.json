@@ -20,9 +20,6 @@
     "mozu",
     "mozu-appdev"
   ],
-  "engines": {
-    "node": "^4.1.1"
-  },
   "license": "MIT",
   "dependencies": {
     "group-by": "0.0.1",

@@ -22,6 +22,7 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "@kibocommerce/cli-web-login": "^1.0.1",
     "group-by": "0.0.1",
     "humanize": "0.0.9",
     "mozu-appdev-utils": "^1.1.2",

@@ -12,15 +12,42 @@ var humanize = require('humanize');
 var groupBy = require('group-by');
 var appDevUtils = require('mozu-appdev-utils');
 var Multipass = require('mozu-multipass');
+var {authenticate} = require('@kibocommerce/cli-web-login');
+
 var prompt = require('prompt');
 var currentPassword = null;
-
+var authPromise = null;
 module.exports = function(grunt) {
     function PromptForPassword(client) {
         var proto = Multipass(client);
         var promptingPass = Object.create(proto);
         promptingPass.get = function(claimtype, context, callback) {
             return proto.get.call(this, claimtype, context, function(err, ticket) {
+                if (claimtype === 'developer' && !ticket && context.login) {
+                    if (!authPromise){
+                        var login = context.loginUrl || context.login;
+                        if (!login) {
+                            if ( context.baseUrl || context.authHost){
+                                login = 'https://login' + 
+                                 (context.baseUrl || context.authHost)
+                                    .toLowerCase()
+                                    .replace('https://','')
+                                    .replace('services','')
+                                    .replace('home','')
+                                    .replace('/','') 
+                                    + '/login';                                
+                            }
+                        }
+                        authPromise = authenticate(login);
+                    }
+                    authPromise.then(function(ticket) {
+                        promptingPass.set(claimtype, context, ticket, function(err) { callback(err, ticket); });
+                    }).catch(function(err){
+                        callback(err, null);
+                    });  
+                    return;
+                }
+
                 if (claimtype === 'developer' && !ticket && !context.developerAccount.password) {
                     var passwordProps = {
                         required: true,

@@ -13,7 +13,6 @@ var groupBy = require('group-by');
 var appDevUtils = require('mozu-appdev-utils');
 var Multipass = require('mozu-multipass');
 var {authenticate} = require('@kibocommerce/cli-web-login');
-
 var use_legacy_login = !!process.env.KIBO_LEGACY_LOGIN 
 var prompt = require('prompt');
 var currentPassword = null;
@@ -29,14 +28,10 @@ module.exports = function(grunt) {
                         var login = context.loginUrl || context.login;
                         if (!login) {
                             if ( context.baseUrl || context.authHost){
-                                login = 'https://www' + 
-                                 (context.baseUrl || context.authHost)
-                                    .toLowerCase()
-                                    .replace('https://','')
-                                    .replace('services','')
-                                    .replace('home','')
-                                    .replace('/','') 
-                                    + '/login';                                
+                                const url = new URL((context.baseUrl || context.authHost).replace(/^http:\/\//, 'https://'));
+                                const domainParts = url.hostname.split('.');
+                                const secondLevelDomain = domainParts.length > 1 ? domainParts.slice(1).join('.') : url.hostname;
+                                login = `https://www.${secondLevelDomain}/login`;
                             }
                         }
                         authPromise = authenticate(login);
@@ -228,9 +223,9 @@ module.exports = function(grunt) {
             context.developerAccount.emailAddress = user;
         }
 
-        if (use_legacy_login && !options.context.developerAccount.emailAddress) {
-            return done(new Error('The `mozusync` task requires a `context.developerAccount.emailAddress` property, either provided in mozu.config.json or at the command line as the first argument to the task, e.g. `grunt mozusync:upload:user@example.com:Password123`.'));
-        }
+        // if (!options.context.developerAccount.emailAddress) {
+        //     return done(new Error('The `mozusync` task requires a `context.developerAccount.emailAddress` property, either provided in mozu.config.json or at the command line as the first argument to the task, e.g. `grunt mozusync:upload:user@example.com:Password123`.'));
+        // }
 
         if (password) {
             grunt.verbose.ok('Password provided at command line.');

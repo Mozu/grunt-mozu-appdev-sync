@@ -14,6 +14,7 @@ var appDevUtils = require('mozu-appdev-utils');
 var Multipass = require('mozu-multipass');
 var {authenticate} = require('@kibocommerce/cli-web-login');
 
+var use_legacy_login = !!process.env.KIBO_LEGACY_LOGIN 
 var prompt = require('prompt');
 var currentPassword = null;
 var authPromise = null;
@@ -23,12 +24,12 @@ module.exports = function(grunt) {
         var promptingPass = Object.create(proto);
         promptingPass.get = function(claimtype, context, callback) {
             return proto.get.call(this, claimtype, context, function(err, ticket) {
-                if (claimtype === 'developer' && !ticket && context.login) {
+                if (claimtype === 'developer' && !ticket && !use_legacy_login) {
                     if (!authPromise){
                         var login = context.loginUrl || context.login;
                         if (!login) {
                             if ( context.baseUrl || context.authHost){
-                                login = 'https://login' + 
+                                login = 'https://www' + 
                                  (context.baseUrl || context.authHost)
                                     .toLowerCase()
                                     .replace('https://','')
@@ -227,7 +228,7 @@ module.exports = function(grunt) {
             context.developerAccount.emailAddress = user;
         }
 
-        if (!options.context.developerAccount.emailAddress) {
+        if (use_legacy_login && !options.context.developerAccount.emailAddress) {
             return done(new Error('The `mozusync` task requires a `context.developerAccount.emailAddress` property, either provided in mozu.config.json or at the command line as the first argument to the task, e.g. `grunt mozusync:upload:user@example.com:Password123`.'));
         }
 

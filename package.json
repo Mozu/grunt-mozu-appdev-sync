@@ -1,8 +1,11 @@
 {
   "name": "grunt-mozu-appdev-sync",
   "version": "2.4.5",
-  "description": "Syncs a local project with the Mozu Developer Center.",
+  "description": "Syncs a local project with the Mozu Developer Center, and builds functions.json (manifest task).",
   "main": "./tasks/mozusync.js",
+  "files": [
+    "tasks"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/Mozu/grunt-mozu-appdev-sync"
@@ -11,7 +14,7 @@
     "ci-build": "npm test",
     "ci-build-stable": "npm run ci-build",
     "postci-build-stable": "mozu-validate-npm-package",
-    "test": "echo No test specified!",
+    "test": "node --test test/manifest.test.js test/grunt.test.js",
     "cov": "echo No coverage specified!"
   },
   "author": "Volusion, LLC",
@@ -30,6 +33,7 @@
     "prompt": "^1.0.0"
   },
   "devDependencies": {
+    "grunt": "1.6.3",
     "mozu-validate-npm-package": "^1.2.1"
   }
 }
